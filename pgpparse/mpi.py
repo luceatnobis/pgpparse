@@ -3,6 +3,7 @@
 
 from pgpparse.funcs import bytes_for_int
 
+
 class MPI:
     """
     An MPI (Multiple Precision Integer) is a data type used to contain and
@@ -23,13 +24,10 @@ class MPI:
         self.value = handle.read_int(self.byte_length)
 
     def to_bytes(self):
-        return b"".join([self.bit_length.to_bytes(2, "big"),
-            self.value.to_bytes(bytes_for_int(self.value), "big")])
-        """
-        return b"".join([x.to_bytes(bytes_for_int(x), "big") for x in
-            [self.bit_length, self.value]])
-        """
+        return b"".join([
+            self.bit_length.to_bytes(2, "big"),
+            self.value.to_bytes(bytes_for_int(self.value), "big")
+        ])
 
     def __repr__(self):
         return "<MPI Value: %s; Length; %s>" % (self.value, self.byte_length)
-

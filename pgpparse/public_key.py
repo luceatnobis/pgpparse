@@ -3,10 +3,11 @@
 
 from pgpparse.mpi import MPI
 
+
 class Public_Key:
 
     def __iter__(self):
-        self._iter_counter = 0 
+        self._iter_counter = 0
         return self
 
     def __next__(self):
@@ -34,6 +35,7 @@ class RSA_Public(Public_Key):
 
         self.mpi = (self.N, self.e)
 
+
 class DSA_Public(Public_Key):
     """
     The public portion of a DSA key is comprised of four MPI, p, q, g and y.
@@ -47,6 +49,7 @@ class DSA_Public(Public_Key):
         self.y = MPI(handle)
 
         self.mpi = (self.p, self.q, self.g, self.y)
+
 
 class Elgamal_Public(Public_Key):
 

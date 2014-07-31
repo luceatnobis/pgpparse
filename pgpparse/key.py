@@ -21,7 +21,6 @@ class Key:
         self._packet_header_cancel_for_packet_type_old = 0x3c
         self._packet_header_cancel_for_packet_type_new = 0xc0
 
-        packets = list()  # will store the packets
         handle = Handle(byte_str)
 
         # http://tools.ietf.org/html/rfc4880#section-4.3
@@ -30,8 +29,6 @@ class Key:
             14: ["public_subkey", packet.Public_Subkey_Packet],
             17: ["user_attribute", packet.User_Attribute_Packet]
         }
-
-        packet_collection = {}.fromkeys(tag_packet_map.keys(), [])
 
         while True:
             try:
@@ -70,7 +67,6 @@ class Key:
             packet_type = self._get_new_packet_type(header)
         else:  # we have an old packet
             packet_type = self._get_old_packet_type(header)
-        
         return packet_type
 
     def _check_valid_packet(self, header):
@@ -78,7 +74,6 @@ class Key:
         Check if the highest bit isn't set.
         """
         return bool(header & self._packet_header_checkbit)
-
 
     def _get_old_packet_type(self, header):
         """

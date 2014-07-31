@@ -2,3 +2,5 @@
 # __init__.py
 
 from pgpparse.key import Key
+
+__all__ = ["Key"]

@@ -38,8 +38,8 @@ class Generic_Packet:
             self.len_length_field, self.body_length = self._get_len_old()
 
         self.body_length_bytes = self.body_length.to_bytes(2, "big")
-        #print(bytes_for_int(header), self.len_length_field, self.body_length)
-        self.size = bytes_for_int(header) + self.len_length_field + self.body_length
+        self.size = bytes_for_int(header) + (
+            self.len_length_field + self.body_length)
 
     def _get_len_new(self):
         indicator_byte = self.handle.read_int(
@@ -54,23 +54,19 @@ class Generic_Packet:
             body_length = self.handle.read_int(length_octs)
 
         len_length_octs = length_octs + self._new_packet_indicator_byte_len
-        # print("Length of len field:", len_length_octs)
 
-        # print()
         return [len_length_octs, body_length]
 
     def _get_len_old(self):
         len_length_field_octs = [1, 2, 4]  # section 4.2.
 
         len_length = self._get_len_length(self.header)
-        # print("len_length from function:", len_length)
+
         if len_length == 3:
             raise NotImplementedError("Indeterminate length not supported")
 
         len_length_octs = len_length_field_octs[len_length]
-        # print("Length of len field:", len_length_octs)
         body_length = self.handle.read_int(len_length_octs)
-        # print("Byte after header:", hex(body_length))
 
         return [len_length_octs, body_length]
 
@@ -115,9 +111,8 @@ class Public_Key_Packet(Generic_Packet):
         }
 
         self.version = handle.read_int(version_field_len)
-        if self.version != 4:
-            raise Exception("Invalid version number at %s" %
-                hex(handle.tell()))
+        if self.version != 4:  # TODO: implement version 3 keys
+            raise Exception("Invalid version number at", hex(handle.tell()))
 
         self.timestamp = handle.read_int(timestamp_field_len)
         self.algorithm = handle.read_int(algo_field_len)
@@ -137,6 +132,7 @@ class Public_Key_Packet(Generic_Packet):
 
         return hashlib.sha1(packet).hexdigest()
 
+
 class Public_Subkey_Packet(Public_Key_Packet):
     """
     Subkeys are identical to actual keys, so this is basically a copy of the
@@ -147,6 +143,7 @@ class Public_Subkey_Packet(Public_Key_Packet):
     def __init__(self, header, handle):
         super().__init__(header, handle)
         self.packet_tag = 14
+
 
 class User_Attribute_Packet(Generic_Packet):
 

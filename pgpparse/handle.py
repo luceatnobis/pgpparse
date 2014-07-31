@@ -17,4 +17,3 @@ class Handle(BytesIO):
         if not content:
             raise EOF
         return int.from_bytes(content, byteorder=byteorder)
-

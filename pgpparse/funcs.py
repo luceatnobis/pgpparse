@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # funcs.py
 
+
 def _check_new_packet(header):
     """
     Return the two rightmost bits.
     """
     _packet_header_genbit = 0x40
     return bool(header & _packet_header_genbit)
+
 
 def bytes_for_int(n, bit=None):
     """
