@@ -93,6 +93,35 @@ class Trash_Packet(Generic_Packet):
 
 
 class Signature_Packet(Generic_Packet):
+    """
+    I feel like quite a bit of explaining is required here.
+
+    A signature packet is both a bit complex as well as partially unspecified.
+    It can have two versions, V3 and V4. To make a long story short, I decided
+    for an implementation based on metaclasses, that is, template classes that
+    merely return the right class so that the corrrect class is instantiated.
+
+    I ran into problems with this; to do metaclasses you usually override the
+    __new__ method at which you can return another object. That is not possibe
+    with the __init__ method. Signature_Packet inherits methods for things that
+    every packet type must have from Generic_Packet. For some reason, Python
+    regards the base class as a metaclass as well if you write the child class
+    as a metaclass. This lead to every other packet type requiring to have a
+    self object passed around. A little too much effort for my taste.
+
+    Eventually I decided for a different process. Instead of inheriting from
+    a class higher in the hierarchy, the Signature_Packet would call the con-
+    structors of the child classes. This does not eliminate the need for a self
+    object to be passed to the constructor, but it limits it to an overseeable
+    extent. This is the reason why Signature_Packet_V4 does not inherit methods
+    and why its not possible for these classes to have methods; they are not
+    instantiated, but rather the sub-constructor is called on the self method.
+
+    Its a bastardisation really.
+
+    Also, V3 signatures are not implemented. If you use them I pity you. You
+    poor sod.
+    """
 
     def __init__(self, header, handle):
         self.subpackets = []
@@ -110,14 +139,18 @@ class Signature_Packet(Generic_Packet):
         except ValueError:
             return exceptions.UnknownSignatureVersion(version)
 
-    def expired(self):
+    def expired(self, now=None):
         assert self.version == 4  # not sure how it works with ver 3 lol
         if hasattr(self, "key_expiration_time"):  # no exp time, no expiration
             # create time object for point that key expires
             exp_dt = dt.fromtimestamp(self.creation_time.timestamp +
                                       self.key_expiration_time.seconds)
-            return exp_dt <= dt.now()  #  do actual comparison
-        return False
+
+            if type(now) is not dt:  # no datetime object, includes None))
+                now = dt.now()
+            return exp_dt <= now  # do actual comparison
+        return False  # apparently, it can't expire.
+
 
 class Public_Key_Packet(Generic_Packet):
     """

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from datetime import datetime as dt
+
 from pgpparse import packet
 from pgpparse import exceptions
 
@@ -21,7 +23,8 @@ class Key:
         self._packet_header_cancel_for_packet_type_old = 0x3c
         self._packet_header_cancel_for_packet_type_new = 0xc0
 
-        self.crypt_signatures = list()
+        self.signatures_sign = list()
+        self.signatures_crypt = list()
 
         handle = Handle(byte_str)
 
@@ -49,23 +52,15 @@ class Key:
             else:
                 setattr(self, class_var, [packet_obj])
 
-        # find signatures that can be used for encryption
         for sig in self.signature:
+            # find signatures that can be used for encryption
             if sig.key_flags.crypt_comm or sig.key_flags.crypt_stor:
-                self.crypt_signatures.append(sig)
-        
-        # print(dir(self.signature[0]))
-        print(self.signature[1].expired())
+                self.signatures_crypt.append(sig)
 
-        """
-        # lets make sure that there is no more than 1 public key
-        if 1 < len(self.public_key):
-            raise exceptions.TooManyPublicKeys
+            # find signatures that can be used for signing
+            if sig.key_flags.sign_data:
+                self.signatures_sign.append(sig)
 
-        self.public_key = self.public_key[0]
-        """
-
-        # TODO: implement sign and crypt key differentiation
 
     def _parse_packet_header(self, header, handle):
         """
@@ -112,3 +107,16 @@ class Key:
         this is 0xc0.
         """
         return (header & self._packet_header_cancel_for_packet_type_new)
+
+    def expired(self):
+        """
+        Just a small wrapper function to figure out if anything in the key
+        has been expired. PGP is very modular, and if not through the gnupg
+        program, it is possible by key modification to have a key that has
+        expired with a signature that has not expired.
+
+        Returns True on any expiration.
+        """
+        now = dt.now()
+        return any(x.expired(now=now) for x in self.signatures_crypt +
+                   self.signatures_sign)
