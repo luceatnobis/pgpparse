@@ -21,10 +21,13 @@ class Key:
         self._packet_header_cancel_for_packet_type_old = 0x3c
         self._packet_header_cancel_for_packet_type_new = 0xc0
 
+        self.crypt_signatures = list()
+
         handle = Handle(byte_str)
 
         # http://tools.ietf.org/html/rfc4880#section-4.3
         tag_packet_map = {
+            2: ["signature", packet.Signature_Packet],
             6: ["public_key", packet.Public_Key_Packet],
             14: ["public_subkey", packet.Public_Subkey_Packet],
             17: ["user_attribute", packet.User_Attribute_Packet]
@@ -41,16 +44,28 @@ class Key:
                 packet_type, ["trash", packet.Trash_Packet])
 
             packet_obj = packet_class(header, handle)
-            if not hasattr(self, class_var):
-                setattr(self, class_var, [packet_obj])
-            else:
+            if hasattr(self, class_var):
                 getattr(self, class_var).append(packet_obj)
+            else:
+                setattr(self, class_var, [packet_obj])
 
+        # find signatures that can be used for encryption
+        for sig in self.signature:
+            if sig.key_flags.crypt_comm or sig.key_flags.crypt_stor:
+                self.crypt_signatures.append(sig)
+        
+        # print(dir(self.signature[0]))
+        print(self.signature[1].expired())
+
+        """
         # lets make sure that there is no more than 1 public key
         if 1 < len(self.public_key):
             raise exceptions.TooManyPublicKeys
 
         self.public_key = self.public_key[0]
+        """
+
+        # TODO: implement sign and crypt key differentiation
 
     def _parse_packet_header(self, header, handle):
         """

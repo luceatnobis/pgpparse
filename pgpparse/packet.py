@@ -3,7 +3,11 @@
 
 import hashlib
 
-from pgpparse import public_key
+from datetime import datetime as dt
+
+from pgpparse import data
+from pgpparse import signature
+from pgpparse import exceptions
 
 from pgpparse.funcs import bytes_for_int, mash_to_bytes, _check_new_packet
 
@@ -88,6 +92,33 @@ class Trash_Packet(Generic_Packet):
         handle.read(self.body_length)
 
 
+class Signature_Packet(Generic_Packet):
+
+    def __init__(self, header, handle):
+        self.subpackets = []
+        super().__init__(header, handle)
+
+        sig_version_field_len = 1
+        version = handle.read_int(sig_version_field_len)
+
+        signature_types = {
+            3: signature.Signature_Packet_V3,
+            4: signature.Signature_Packet_V4
+        }
+        try:
+            signature_types[version].__init__(self, header, handle)
+        except ValueError:
+            return exceptions.UnknownSignatureVersion(version)
+
+    def expired(self):
+        assert self.version == 4  # not sure how it works with ver 3 lol
+        if hasattr(self, "key_expiration_time"):  # no exp time, no expiration
+            # create time object for point that key expires
+            exp_dt = dt.fromtimestamp(self.creation_time.timestamp +
+                                      self.key_expiration_time.seconds)
+            return exp_dt <= dt.now()  #  do actual comparison
+        return False
+
 class Public_Key_Packet(Generic_Packet):
     """
     This is just a public key container, it contains
@@ -104,20 +135,15 @@ class Public_Key_Packet(Generic_Packet):
         algo_field_len = 1
         version_field_len = 1
         timestamp_field_len = 4
-        public_algorithms = {
-            1: public_key.RSA_Public,
-            16: public_key.Elgamal_Public,
-            17: public_key.DSA_Public
-        }
 
         self.version = handle.read_int(version_field_len)
         if self.version != 4:  # TODO: implement version 3 keys
-            raise Exception("Invalid version number at", hex(handle.tell()))
+            raise Exception("Invalid version number at", hex(handle.io.tell()))
 
         self.timestamp = handle.read_int(timestamp_field_len)
         self.algorithm = handle.read_int(algo_field_len)
 
-        self.key_material = public_algorithms[self.algorithm](handle)
+        self.key_material = data.public_algorithms[self.algorithm](handle)
         self.fingerprint = self._create_fingerprint()
 
     def _create_fingerprint(self):

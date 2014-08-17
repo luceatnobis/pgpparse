@@ -59,3 +59,10 @@ class Elgamal_Public(Public_Key):
         self.y = MPI(handle)
 
         self.mpi = (self.p, self.g, self.y)
+
+class RSA_Signature(Public_Key):
+
+    def __init__(self, handle):
+        self.val_1 = MPI(handle)
+
+        self.mpi = (self.val_1)
