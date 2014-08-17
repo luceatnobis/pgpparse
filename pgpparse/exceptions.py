@@ -5,10 +5,12 @@
 class EOF(Exception):
     pass
 
+
 class TooManyPublicKeys(Exception):
 
     def __str__(self):
         return "More than one Public Key detected"
+
 
 class UnknownSignatureVersion(Exception):
 

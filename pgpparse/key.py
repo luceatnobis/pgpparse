@@ -61,7 +61,6 @@ class Key:
             if sig.key_flags.sign_data:
                 self.signatures_sign.append(sig)
 
-
     def _parse_packet_header(self, header, handle):
         """
         Here we will do a few checks and return the packet type that follows
