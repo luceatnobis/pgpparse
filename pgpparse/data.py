@@ -9,7 +9,8 @@ public_algorithms = {
 }
 
 signature_algorithms = {
-    1: public_key.RSA_Signature
+    1: public_key.RSA_Signature,
+    17: public_key.DSA_Signature
 }
 
 signature_class_attrs = {

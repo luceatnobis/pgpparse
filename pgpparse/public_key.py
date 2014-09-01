@@ -67,3 +67,11 @@ class RSA_Signature(Public_Key):
         self.val_1 = MPI(handle)
 
         self.mpi = (self.val_1)
+
+class DSA_Signature(Public_Key):
+
+    def __init__(self, handle):
+        self.val_1 = MPI(handle)
+        self.val_2 = MPI(handle)
+
+        self.mpi = (self.val_1, self.val_2)

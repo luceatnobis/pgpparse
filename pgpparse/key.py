@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from base64 import decodebytes as db
+
 from datetime import datetime as dt
 
 from pgpparse import packet
@@ -25,6 +27,12 @@ class Key:
 
         self.signatures_sign = list()
         self.signatures_crypt = list()
+
+        self.armor_header_decor = b"-----"
+        self.armor_header_public_key = b"-----BEGIN PGP PUBLIC KEY BLOCK-----"
+
+        if self._get_armored(byte_str):
+            byte_str = self._unarmor_key(byte_str)
 
         handle = Handle(byte_str)
 
@@ -53,6 +61,8 @@ class Key:
                 setattr(self, class_var, [packet_obj])
 
         for sig in self.signature:
+            if not hasattr(sig, "key_flags"):
+                continue  # this signature lacks flags (wut)
             # find signatures that can be used for encryption
             if sig.key_flags.crypt_comm or sig.key_flags.crypt_stor:
                 self.signatures_crypt.append(sig)
@@ -119,3 +129,48 @@ class Key:
         now = dt.now()
         return any(x.expired(now=now) for x in self.signatures_crypt +
                    self.signatures_sign)
+
+    def _get_armored(self, content):
+        """
+        Checks if an armored key was passed to the module. Returns True if key
+        is ASCII armored, False if it is binary data.
+        """
+        if content.split(b'\n', 1)[0] == self.armor_header_public_key:
+            return True
+        return False
+
+    def _unarmor_key(self, armored_key):
+        key_content = list()
+        checksum = None
+
+        for line in armored_key.splitlines():
+            # header line or comment
+            if line.startswith(self.armor_header_decor) or b':' in line:
+                continue
+            # line appears to be fine/usable
+            key_content.append(line)
+
+        b64_checksum = key_content.pop()[1:]  # we dont filter for the checksum
+        checksum = int.from_bytes(db(b64_checksum), "big")
+
+        binary_key_content = db(b"".join(x for x in key_content if x))
+
+        if not checksum == self._crc24(binary_key_content):
+            raise exceptions.BadArmorChecksum(checksum)
+
+        return binary_key_content
+
+    def _crc24(self, byte):  # see section 6.1
+        crc24_init = 0xB704CE
+        crc24_poly = 0x1864CFB
+
+        crc = crc24_init
+
+        for i in byte:
+            crc ^= i << 16
+            for j in range(8):
+                crc <<= 1
+                if(crc & 0x1000000):
+                    crc ^= crc24_poly
+
+        return crc & 0xFFFFFF

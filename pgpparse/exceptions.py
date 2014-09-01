@@ -6,6 +6,14 @@ class EOF(Exception):
     pass
 
 
+class BadArmorChecksum(Exception):
+
+    def __init__(self, checksum):
+        self.checksum = checksum
+
+    def __str__(self):
+        return "Bad Checksum: %s" % self.checksum
+
 class TooManyPublicKeys(Exception):
 
     def __str__(self):
